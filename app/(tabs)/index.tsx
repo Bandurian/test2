@@ -8,9 +8,9 @@ import {
   ScrollView,
   Image,
   ActivityIndicator,
-  Modal,
   Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { createClient } from '@/lib/supabase/client';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
@@ -34,18 +34,10 @@ export default function RecipesScreen() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'my'>('all');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newRecipe, setNewRecipe] = useState({
-    title: '',
-    description: '',
-    prep_time: '',
-    cook_time: '',
-    servings: '',
-    calories_per_serving: '',
-  });
   const supabase = createClient();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const router = useRouter();
 
   useEffect(() => {
     loadRecipes();
@@ -78,49 +70,15 @@ export default function RecipesScreen() {
     }
   };
 
-  const handleAddRecipe = async () => {
-    if (!newRecipe.title || !newRecipe.description) {
-      Alert.alert('Error', 'Please fill in title and description');
-      return;
-    }
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      const { error } = await supabase.from('recipes').insert({
-        ...newRecipe,
-        prep_time: parseInt(newRecipe.prep_time) || 0,
-        cook_time: parseInt(newRecipe.cook_time) || 0,
-        servings: parseInt(newRecipe.servings) || 1,
-        calories_per_serving: parseInt(newRecipe.calories_per_serving) || 0,
-        user_id: user?.id,
-        is_public: false,
-      });
-
-      if (error) throw error;
-
-      Alert.alert('Success', 'Recipe added successfully');
-      setShowAddModal(false);
-      setNewRecipe({
-        title: '',
-        description: '',
-        prep_time: '',
-        cook_time: '',
-        servings: '',
-        calories_per_serving: '',
-      });
-      loadRecipes();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to add recipe');
-    }
-  };
-
   const filteredRecipes = (activeTab === 'all' ? recipes : myRecipes).filter((recipe) =>
     recipe.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const RecipeCard = ({ recipe }: { recipe: Recipe }) => (
-    <View style={[styles.recipeCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <TouchableOpacity
+      style={[styles.recipeCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+      onPress={() => router.push(`/recipe/${recipe.id}`)}
+    >
       {recipe.image_url && (
         <Image source={{ uri: recipe.image_url }} style={styles.recipeImage} />
       )}
@@ -141,7 +99,7 @@ export default function RecipesScreen() {
           </Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   if (loading) {
@@ -164,9 +122,9 @@ export default function RecipesScreen() {
         />
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: colors.primary }]}
-          onPress={() => setShowAddModal(true)}
+          onPress={() => router.push('/recipe/create')}
         >
-          <Text style={styles.addButtonText}>+ Add</Text>
+          <Text style={styles.addButtonText}>+ New</Text>
         </TouchableOpacity>
       </View>
 
@@ -190,86 +148,22 @@ export default function RecipesScreen() {
       </View>
 
       <ScrollView style={styles.scrollView}>
-        {filteredRecipes.map((recipe) => (
-          <RecipeCard key={recipe.id} recipe={recipe} />
-        ))}
-      </ScrollView>
-
-      <Modal visible={showAddModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Add New Recipe</Text>
-            <ScrollView>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-                placeholder="Title"
-                placeholderTextColor={colors.icon}
-                value={newRecipe.title}
-                onChangeText={(text) => setNewRecipe({ ...newRecipe, title: text })}
-              />
-              <TextInput
-                style={[styles.input, styles.textArea, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-                placeholder="Description"
-                placeholderTextColor={colors.icon}
-                value={newRecipe.description}
-                onChangeText={(text) => setNewRecipe({ ...newRecipe, description: text })}
-                multiline
-                numberOfLines={4}
-              />
-              <View style={styles.row}>
-                <TextInput
-                  style={[styles.input, styles.halfInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-                  placeholder="Prep time (min)"
-                  placeholderTextColor={colors.icon}
-                  value={newRecipe.prep_time}
-                  onChangeText={(text) => setNewRecipe({ ...newRecipe, prep_time: text })}
-                  keyboardType="numeric"
-                />
-                <TextInput
-                  style={[styles.input, styles.halfInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-                  placeholder="Cook time (min)"
-                  placeholderTextColor={colors.icon}
-                  value={newRecipe.cook_time}
-                  onChangeText={(text) => setNewRecipe({ ...newRecipe, cook_time: text })}
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={styles.row}>
-                <TextInput
-                  style={[styles.input, styles.halfInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-                  placeholder="Servings"
-                  placeholderTextColor={colors.icon}
-                  value={newRecipe.servings}
-                  onChangeText={(text) => setNewRecipe({ ...newRecipe, servings: text })}
-                  keyboardType="numeric"
-                />
-                <TextInput
-                  style={[styles.input, styles.halfInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-                  placeholder="Calories"
-                  placeholderTextColor={colors.icon}
-                  value={newRecipe.calories_per_serving}
-                  onChangeText={(text) => setNewRecipe({ ...newRecipe, calories_per_serving: text })}
-                  keyboardType="numeric"
-                />
-              </View>
-            </ScrollView>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: colors.border }]}
-                onPress={() => setShowAddModal(false)}
-              >
-                <Text style={[styles.modalButtonText, { color: colors.text }]}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: colors.primary }]}
-                onPress={handleAddRecipe}
-              >
-                <Text style={[styles.modalButtonText, { color: '#fff' }]}>Add Recipe</Text>
-              </TouchableOpacity>
-            </View>
+        {filteredRecipes.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={[styles.emptyText, { color: colors.secondary }]}>No recipes found</Text>
+            <TouchableOpacity
+              style={[styles.emptyButton, { backgroundColor: colors.primary }]}
+              onPress={() => router.push('/recipe/create')}
+            >
+              <Text style={styles.emptyButtonText}>Create Your First Recipe</Text>
+            </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
+        ) : (
+          filteredRecipes.map((recipe) => (
+            <RecipeCard key={recipe.id} recipe={recipe} />
+          ))
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -355,53 +249,25 @@ const styles = StyleSheet.create({
   recipeInfoText: {
     fontSize: 12,
   },
-  modalOverlay: {
+  emptyContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    borderRadius: 12,
-    padding: 20,
-    maxHeight: '80%',
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  input: {
-    height: 44,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    marginBottom: 12,
-  },
-  textArea: {
-    height: 100,
-    paddingTop: 12,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  halfInput: {
-    flex: 1,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
-  },
-  modalButton: {
-    flex: 1,
-    height: 44,
-    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 40,
+    marginTop: 60,
   },
-  modalButtonText: {
+  emptyText: {
+    fontSize: 18,
+    marginBottom: 20,
+  },
+  emptyButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  emptyButtonText: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: '600',
   },
 });
