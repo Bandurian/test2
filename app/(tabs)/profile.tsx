@@ -119,32 +119,32 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Personal Information</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Informations personnelles</Text>
 
         <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: colors.secondary }]}>First Name</Text>
+          <Text style={[styles.label, { color: colors.secondary }]}>Prénom</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
             value={profile.first_name}
             onChangeText={(text) => setProfile({ ...profile, first_name: text })}
-            placeholder="Enter first name"
+            placeholder="Entrez votre prénom"
             placeholderTextColor={colors.icon}
           />
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: colors.secondary }]}>Last Name</Text>
+          <Text style={[styles.label, { color: colors.secondary }]}>Nom</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
             value={profile.last_name}
             onChangeText={(text) => setProfile({ ...profile, last_name: text })}
-            placeholder="Enter last name"
+            placeholder="Entrez votre nom"
             placeholderTextColor={colors.icon}
           />
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: colors.secondary }]}>Email</Text>
+          <Text style={[styles.label, { color: colors.secondary }]}>E-mail</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.card, color: colors.secondary, borderColor: colors.border }]}
             value={profile.email}
@@ -152,29 +152,34 @@ export default function ProfileScreen() {
           />
         </View>
 
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Preferences</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Préférences</Text>
 
         <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: colors.secondary }]}>Diet Type</Text>
+          <Text style={[styles.label, { color: colors.secondary }]}>Type de régime</Text>
           <View style={styles.dietOptions}>
-            {['omnivore', 'vegetarian', 'vegan', 'keto'].map((diet) => (
+            {[
+              { value: 'omnivore', label: 'Omnivore' },
+              { value: 'vegetarian', label: 'Végétarien' },
+              { value: 'vegan', label: 'Végétalien' },
+              { value: 'keto', label: 'Céto' },
+            ].map((diet) => (
               <TouchableOpacity
-                key={diet}
+                key={diet.value}
                 style={[
                   styles.dietOption,
                   { borderColor: colors.border },
-                  profile.diet_type === diet && { backgroundColor: colors.primary, borderColor: colors.primary },
+                  profile.diet_type === diet.value && { backgroundColor: colors.primary, borderColor: colors.primary },
                 ]}
-                onPress={() => setProfile({ ...profile, diet_type: diet })}
+                onPress={() => setProfile({ ...profile, diet_type: diet.value })}
               >
                 <Text
                   style={[
                     styles.dietOptionText,
                     { color: colors.text },
-                    profile.diet_type === diet && { color: '#fff' },
+                    profile.diet_type === diet.value && { color: '#fff' },
                   ]}
                 >
-                  {diet.charAt(0).toUpperCase() + diet.slice(1)}
+                  {diet.label}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -182,13 +187,13 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: colors.secondary }]}>Daily Calorie Goal</Text>
+          <Text style={[styles.label, { color: colors.secondary }]}>Objectif calorique quotidien</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
             value={profile.calorie_goal.toString()}
             onChangeText={(text) => setProfile({ ...profile, calorie_goal: parseInt(text) || 0 })}
             keyboardType="numeric"
-            placeholder="Enter calorie goal"
+            placeholder="Entrez votre objectif"
             placeholderTextColor={colors.icon}
           />
         </View>
@@ -201,12 +206,12 @@ export default function ProfileScreen() {
           {saving ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.saveButtonText}>Save Changes</Text>
+            <Text style={styles.saveButtonText}>Enregistrer les modifications</Text>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity style={[styles.signOutButton, { borderColor: colors.error }]} onPress={handleSignOut}>
-          <Text style={[styles.signOutButtonText, { color: colors.error }]}>Sign Out</Text>
+          <Text style={[styles.signOutButtonText, { color: colors.error }]}>Se déconnecter</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

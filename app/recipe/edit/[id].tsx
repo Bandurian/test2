@@ -64,7 +64,7 @@ export default function EditRecipeScreen() {
       if (recipeError) throw recipeError;
 
       if (recipe.user_id !== user.id) {
-        Alert.alert('Error', 'You do not have permission to edit this recipe');
+        Alert.alert('Erreur', "Vous n'avez pas la permission de modifier cette recette");
         router.back();
         return;
       }
@@ -110,7 +110,7 @@ export default function EditRecipeScreen() {
         categories: [],
       });
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to load recipe');
+      Alert.alert('Erreur', error.message || 'Échec du chargement de la recette');
       router.back();
     } finally {
       setLoading(false);
@@ -125,7 +125,7 @@ export default function EditRecipeScreen() {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (permissionResult.granted === false) {
-      Alert.alert('Permission required', 'Permission to access camera roll is required!');
+      Alert.alert('Permission requise', "L'accès à la galerie est requis !");
       return;
     }
 
@@ -193,7 +193,7 @@ export default function EditRecipeScreen() {
   const validateStep = () => {
     if (currentStep === 1) {
       if (!formData.title.trim()) {
-        Alert.alert('Error', 'Please enter a recipe title');
+        Alert.alert('Erreur', 'Veuillez saisir un titre de recette');
         return false;
       }
     }
@@ -210,12 +210,12 @@ export default function EditRecipeScreen() {
 
   const getNextButtonText = () => {
     if (currentStep === 2) {
-      return hasIngredientsContent() ? 'Continue' : 'Skip';
+      return hasIngredientsContent() ? 'Continuer' : 'Passer';
     }
     if (currentStep === 3) {
-      return hasStepsContent() ? 'Save Changes' : 'Skip & Save';
+      return hasStepsContent() ? 'Enregistrer' : 'Passer & Enregistrer';
     }
-    return 'Next';
+    return 'Suivant';
   };
 
   const nextStep = () => {
@@ -292,7 +292,7 @@ export default function EditRecipeScreen() {
 
       router.replace(`/recipe/${id}`);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update recipe');
+      Alert.alert('Erreur', error.message || 'Échec de la mise à jour de la recette');
     } finally {
       setLoading(false);
     }
@@ -303,27 +303,27 @@ export default function EditRecipeScreen() {
       case 1:
         return (
           <ScrollView style={styles.stepContent}>
-            <Text style={[styles.label, { color: colors.secondary }]}>Recipe Title *</Text>
+            <Text style={[styles.label, { color: colors.secondary }]}>Titre de la recette *</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
               value={formData.title}
               onChangeText={(text) => updateFormData('title', text)}
-              placeholder="Enter recipe title"
+              placeholder="Entrez le titre"
               placeholderTextColor={colors.icon}
             />
 
-            <Text style={[styles.label, { color: colors.secondary }]}>Description (optional)</Text>
+            <Text style={[styles.label, { color: colors.secondary }]}>Description (facultatif)</Text>
             <TextInput
               style={[styles.input, styles.textArea, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
               value={formData.description}
               onChangeText={(text) => updateFormData('description', text)}
-              placeholder="Describe your recipe"
+              placeholder="Décrivez votre recette"
               placeholderTextColor={colors.icon}
               multiline
               numberOfLines={4}
             />
 
-            <Text style={[styles.label, { color: colors.secondary }]}>Recipe Image (optional)</Text>
+            <Text style={[styles.label, { color: colors.secondary }]}>Image de la recette (facultatif)</Text>
             {formData.image_url ? (
               <View style={styles.imagePreviewContainer}>
                 <Image source={{ uri: formData.image_url }} style={styles.imagePreview} />
@@ -339,12 +339,12 @@ export default function EditRecipeScreen() {
               style={[styles.imageButton, { backgroundColor: colors.primary }]}
               onPress={pickImage}
             >
-              <Text style={styles.imageButtonText}>Choose Photo</Text>
+              <Text style={styles.imageButtonText}>Choisir une photo</Text>
             </TouchableOpacity>
 
             <View style={styles.row}>
               <View style={styles.halfWidth}>
-                <Text style={[styles.label, { color: colors.secondary }]}>Prep Time (min)</Text>
+                <Text style={[styles.label, { color: colors.secondary }]}>Préparation (min)</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                   value={formData.prep_time}
@@ -355,7 +355,7 @@ export default function EditRecipeScreen() {
                 />
               </View>
               <View style={styles.halfWidth}>
-                <Text style={[styles.label, { color: colors.secondary }]}>Cook Time (min)</Text>
+                <Text style={[styles.label, { color: colors.secondary }]}>Cuisson (min)</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                   value={formData.cook_time}
@@ -369,7 +369,7 @@ export default function EditRecipeScreen() {
 
             <View style={styles.row}>
               <View style={styles.halfWidth}>
-                <Text style={[styles.label, { color: colors.secondary }]}>Servings</Text>
+                <Text style={[styles.label, { color: colors.secondary }]}>Portions</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                   value={formData.servings}
@@ -380,7 +380,7 @@ export default function EditRecipeScreen() {
                 />
               </View>
               <View style={styles.halfWidth}>
-                <Text style={[styles.label, { color: colors.secondary }]}>Calories/Serving</Text>
+                <Text style={[styles.label, { color: colors.secondary }]}>Calories/Portion</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                   value={formData.calories_per_serving}
@@ -400,7 +400,7 @@ export default function EditRecipeScreen() {
                 <View style={[styles.checkboxBox, { borderColor: colors.border }]}>
                   {formData.is_public && <View style={[styles.checkboxChecked, { backgroundColor: colors.primary }]} />}
                 </View>
-                <Text style={[styles.checkboxLabel, { color: colors.text }]}>Make this recipe public</Text>
+                <Text style={[styles.checkboxLabel, { color: colors.text }]}>Rendre cette recette publique</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -409,14 +409,14 @@ export default function EditRecipeScreen() {
       case 2:
         return (
           <ScrollView style={styles.stepContent}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Ingredients</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Ingrédients</Text>
             {formData.ingredients.map((ingredient, index) => (
               <View key={index} style={styles.ingredientRow}>
                 <TextInput
                   style={[styles.input, styles.ingredientName, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                   value={ingredient.ingredient_name}
                   onChangeText={(text) => updateIngredient(index, 'ingredient_name', text)}
-                  placeholder="Ingredient name"
+                  placeholder="Nom de l'ingrédient"
                   placeholderTextColor={colors.icon}
                 />
                 <TextInput
@@ -431,7 +431,7 @@ export default function EditRecipeScreen() {
                   style={[styles.input, styles.ingredientUnit, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                   value={ingredient.unit}
                   onChangeText={(text) => updateIngredient(index, 'unit', text)}
-                  placeholder="cup"
+                  placeholder="tasse"
                   placeholderTextColor={colors.icon}
                 />
                 {formData.ingredients.length > 1 && (
@@ -442,7 +442,7 @@ export default function EditRecipeScreen() {
               </View>
             ))}
             <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]} onPress={addIngredient}>
-              <Text style={styles.addButtonText}>+ Add Ingredient</Text>
+              <Text style={styles.addButtonText}>+ Ajouter un ingrédient</Text>
             </TouchableOpacity>
           </ScrollView>
         );
@@ -450,7 +450,7 @@ export default function EditRecipeScreen() {
       case 3:
         return (
           <ScrollView style={styles.stepContent}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Instructions</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Étapes</Text>
             {formData.steps.map((step, index) => (
               <View key={index} style={styles.stepRow}>
                 <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
@@ -460,7 +460,7 @@ export default function EditRecipeScreen() {
                   style={[styles.input, styles.stepInput, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                   value={step.instruction}
                   onChangeText={(text) => updateStep(index, text)}
-                  placeholder="Describe this step..."
+                  placeholder="Décrivez cette étape..."
                   placeholderTextColor={colors.icon}
                   multiline
                 />
@@ -472,7 +472,7 @@ export default function EditRecipeScreen() {
               </View>
             ))}
             <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]} onPress={addStep}>
-              <Text style={styles.addButtonText}>+ Add Step</Text>
+              <Text style={styles.addButtonText}>+ Ajouter une étape</Text>
             </TouchableOpacity>
           </ScrollView>
         );
@@ -497,9 +497,9 @@ export default function EditRecipeScreen() {
     >
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={[styles.cancelButton, { color: colors.primary }]}>Cancel</Text>
+          <Text style={[styles.cancelButton, { color: colors.primary }]}>Annuler</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Edit Recipe</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Modifier la recette</Text>
         <View style={{ width: 60 }} />
       </View>
 
@@ -526,13 +526,13 @@ export default function EditRecipeScreen() {
         </View>
         <View style={styles.progressLabels}>
           <Text style={[styles.progressLabel, { color: currentStep === 1 ? colors.primary : colors.secondary }]}>
-            Details
+            Détails
           </Text>
           <Text style={[styles.progressLabel, { color: currentStep === 2 ? colors.primary : colors.secondary }]}>
-            Ingredients
+            Ingrédients
           </Text>
           <Text style={[styles.progressLabel, { color: currentStep === 3 ? colors.primary : colors.secondary }]}>
-            Steps
+            Étapes
           </Text>
         </View>
       </View>
@@ -545,7 +545,7 @@ export default function EditRecipeScreen() {
             style={[styles.footerButton, styles.backButton, { borderColor: colors.border }]}
             onPress={previousStep}
           >
-            <Text style={[styles.backButtonText, { color: colors.text }]}>Back</Text>
+            <Text style={[styles.backButtonText, { color: colors.text }]}>Retour</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity
