@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,21 +12,22 @@ import {
   Platform,
   Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { createClient } from '@/lib/supabase/client';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
-import { RecipeFormData, RecipeIngredient, RecipeStep, UNITS, DIFFICULTY_LEVELS } from '@/lib/types/recipe';
+import { RecipeFormData, RecipeIngredient, RecipeStep } from '@/lib/types/recipe';
 
-export default function CreateRecipeScreen() {
+export default function EditRecipeScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams();
   const supabase = createClient();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<RecipeFormData>({
     title: '',
     description: '',
@@ -44,6 +45,77 @@ export default function CreateRecipeScreen() {
     steps: [{ step_number: 1, instruction: '' }],
     categories: [],
   });
+
+  useEffect(() => {
+    loadRecipe();
+  }, [id]);
+
+  const loadRecipe = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data: recipe, error: recipeError } = await supabase
+        .from('recipes')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (recipeError) throw recipeError;
+
+      if (recipe.user_id !== user.id) {
+        Alert.alert('Error', 'You do not have permission to edit this recipe');
+        router.back();
+        return;
+      }
+
+      const { data: ingredientsData } = await supabase
+        .from('recipe_ingredients')
+        .select('*')
+        .eq('recipe_id', id)
+        .order('created_at');
+
+      const { data: stepsData } = await supabase
+        .from('recipe_steps')
+        .select('*')
+        .eq('recipe_id', id)
+        .order('step_number');
+
+      setFormData({
+        title: recipe.title,
+        description: recipe.description || '',
+        image_url: recipe.image_url || '',
+        prep_time: recipe.prep_time?.toString() || '',
+        cook_time: recipe.cook_time?.toString() || '',
+        servings: recipe.servings?.toString() || '4',
+        calories_per_serving: recipe.calories_per_serving?.toString() || '',
+        protein_per_serving: '',
+        carbs_per_serving: '',
+        fat_per_serving: '',
+        difficulty: 'medium',
+        is_public: recipe.is_public || false,
+        ingredients: ingredientsData && ingredientsData.length > 0
+          ? ingredientsData.map(ing => ({
+              ingredient_name: ing.ingredient_name,
+              quantity: ing.quantity,
+              unit: ing.unit,
+            }))
+          : [{ ingredient_name: '', quantity: 0, unit: 'cup' }],
+        steps: stepsData && stepsData.length > 0
+          ? stepsData.map(step => ({
+              step_number: step.step_number,
+              instruction: step.instruction,
+            }))
+          : [{ step_number: 1, instruction: '' }],
+        categories: [],
+      });
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to load recipe');
+      router.back();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const updateFormData = (field: keyof RecipeFormData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -176,7 +248,7 @@ export default function CreateRecipeScreen() {
       return hasIngredientsContent() ? 'Continue' : 'Skip';
     }
     if (currentStep === 3) {
-      return hasStepsContent() ? 'Save Recipe' : 'Skip & Save';
+      return hasStepsContent() ? 'Save Changes' : 'Skip & Save';
     }
     return 'Next';
   };
@@ -200,7 +272,6 @@ export default function CreateRecipeScreen() {
       if (!user) throw new Error('Not authenticated');
 
       const recipeData = {
-        user_id: user.id,
         title: formData.title,
         description: formData.description,
         image_url: formData.image_url || null,
@@ -211,18 +282,20 @@ export default function CreateRecipeScreen() {
         is_public: formData.is_public,
       };
 
-      const { data: recipe, error: recipeError } = await supabase
+      const { error: recipeError } = await supabase
         .from('recipes')
-        .insert(recipeData)
-        .select()
-        .single();
+        .update(recipeData)
+        .eq('id', id);
 
       if (recipeError) throw recipeError;
+
+      await supabase.from('recipe_ingredients').delete().eq('recipe_id', id);
+      await supabase.from('recipe_steps').delete().eq('recipe_id', id);
 
       const validIngredients = formData.ingredients
         .filter((ing) => ing.ingredient_name.trim())
         .map((ing) => ({
-          recipe_id: recipe.id,
+          recipe_id: id,
           ingredient_name: ing.ingredient_name,
           quantity: ing.quantity || 0,
           unit: ing.unit,
@@ -239,7 +312,7 @@ export default function CreateRecipeScreen() {
       const validSteps = formData.steps
         .filter((step) => step.instruction.trim())
         .map((step) => ({
-          recipe_id: recipe.id,
+          recipe_id: id,
           step_number: step.step_number,
           instruction: step.instruction,
         }));
@@ -252,9 +325,9 @@ export default function CreateRecipeScreen() {
         if (stepsError) throw stepsError;
       }
 
-      router.replace('/(tabs)/?tab=my');
+      router.replace(`/recipe/${id}`);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to create recipe');
+      Alert.alert('Error', error.message || 'Failed to update recipe');
     } finally {
       setLoading(false);
     }
@@ -444,6 +517,14 @@ export default function CreateRecipeScreen() {
     }
   };
 
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -453,7 +534,7 @@ export default function CreateRecipeScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={[styles.cancelButton, { color: colors.primary }]}>Cancel</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>New Recipe</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Edit Recipe</Text>
         <View style={{ width: 60 }} />
       </View>
 
@@ -521,6 +602,10 @@ export default function CreateRecipeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',

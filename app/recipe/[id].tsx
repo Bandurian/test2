@@ -27,6 +27,7 @@ export default function RecipeDetailScreen() {
   const [steps, setSteps] = useState<RecipeStep[]>([]);
   const [loading, setLoading] = useState(true);
   const [servings, setServings] = useState(1);
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     loadRecipe();
@@ -34,6 +35,8 @@ export default function RecipeDetailScreen() {
 
   const loadRecipe = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+
       const { data: recipeData, error: recipeError } = await supabase
         .from('recipes')
         .select('*')
@@ -44,6 +47,7 @@ export default function RecipeDetailScreen() {
 
       setRecipe(recipeData);
       setServings(recipeData.servings);
+      setIsOwner(user?.id === recipeData.user_id);
 
       const { data: ingredientsData } = await supabase
         .from('recipe_ingredients')
@@ -73,6 +77,41 @@ export default function RecipeDetailScreen() {
     return (quantity * servings) / recipe.servings;
   };
 
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Recipe',
+      'Are you sure you want to delete this recipe? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const { error } = await supabase
+                .from('recipes')
+                .delete()
+                .eq('id', id);
+
+              if (error) throw error;
+
+              Alert.alert('Success', 'Recipe deleted successfully');
+              router.replace('/(tabs)/?tab=my');
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to delete recipe');
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleEdit = () => {
+    router.push(`/recipe/edit/${id}`);
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
@@ -91,6 +130,16 @@ export default function RecipeDetailScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={[styles.backButton, { color: colors.primary }]}>← Back</Text>
         </TouchableOpacity>
+        {isOwner && (
+          <View style={styles.actionButtons}>
+            <TouchableOpacity onPress={handleEdit} style={[styles.actionButton, { backgroundColor: colors.primary }]}>
+              <Text style={styles.actionButtonText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleDelete} style={[styles.actionButton, { backgroundColor: colors.error }]}>
+              <Text style={styles.actionButtonText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       <ScrollView>
@@ -188,6 +237,20 @@ const styles = StyleSheet.create({
   },
   backButton: {
     fontSize: 16,
+    fontWeight: '600',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: '600',
   },
   image: {
