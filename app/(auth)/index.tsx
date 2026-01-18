@@ -129,9 +129,11 @@ export default function AuthScreen() {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colorScheme === 'dark' ? '#0a0a0a' : '#ffffff'} />
             ) : (
-              <Text style={styles.buttonText}>{isLogin ? 'Sign In' : 'Sign Up'}</Text>
+              <Text style={[styles.buttonText, { color: colorScheme === 'dark' ? '#0a0a0a' : '#ffffff' }]}>
+                {isLogin ? 'Sign In' : 'Sign Up'}
+              </Text>
             )}
           </TouchableOpacity>
 
@@ -187,7 +189,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   buttonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

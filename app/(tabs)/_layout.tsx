@@ -32,7 +32,7 @@ export default function TabLayout() {
         name="planner"
         options={{
           title: 'Planner',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar" color={color} />,
         }}
       />
       <Tabs.Screen
