@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { createClient } from '@/lib/supabase/client';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
@@ -38,10 +38,17 @@ export default function RecipesScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const router = useRouter();
+  const params = useLocalSearchParams();
 
   useEffect(() => {
     loadRecipes();
   }, []);
+
+  useEffect(() => {
+    if (params.tab === 'my') {
+      setActiveTab('my');
+    }
+  }, [params.tab]);
 
   const loadRecipes = async () => {
     setLoading(true);

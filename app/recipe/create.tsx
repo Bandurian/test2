@@ -10,8 +10,10 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { createClient } from '@/lib/supabase/client';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
@@ -45,6 +47,26 @@ export default function CreateRecipeScreen() {
 
   const updateFormData = (field: keyof RecipeFormData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const pickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (permissionResult.granted === false) {
+      Alert.alert('Permission required', 'Permission to access camera roll is required!');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      updateFormData('image_url', result.assets[0].uri);
+    }
   };
 
   const addIngredient = () => {
@@ -95,10 +117,6 @@ export default function CreateRecipeScreen() {
     if (currentStep === 1) {
       if (!formData.title.trim()) {
         Alert.alert('Error', 'Please enter a recipe title');
-        return false;
-      }
-      if (!formData.description.trim()) {
-        Alert.alert('Error', 'Please enter a description');
         return false;
       }
     }
@@ -194,9 +212,7 @@ export default function CreateRecipeScreen() {
         if (stepsError) throw stepsError;
       }
 
-      Alert.alert('Success', 'Recipe created successfully!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      router.replace('/(tabs)/?tab=my');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to create recipe');
     } finally {
@@ -218,7 +234,7 @@ export default function CreateRecipeScreen() {
               placeholderTextColor={colors.icon}
             />
 
-            <Text style={[styles.label, { color: colors.secondary }]}>Description *</Text>
+            <Text style={[styles.label, { color: colors.secondary }]}>Description (optional)</Text>
             <TextInput
               style={[styles.input, styles.textArea, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
               value={formData.description}
@@ -229,14 +245,38 @@ export default function CreateRecipeScreen() {
               numberOfLines={4}
             />
 
-            <Text style={[styles.label, { color: colors.secondary }]}>Image URL (optional)</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
-              value={formData.image_url}
-              onChangeText={(text) => updateFormData('image_url', text)}
-              placeholder="https://example.com/image.jpg"
-              placeholderTextColor={colors.icon}
-            />
+            <Text style={[styles.label, { color: colors.secondary }]}>Recipe Image (optional)</Text>
+            {formData.image_url ? (
+              <View style={styles.imagePreviewContainer}>
+                <Image source={{ uri: formData.image_url }} style={styles.imagePreview} />
+                <TouchableOpacity
+                  style={[styles.removeImageButton, { backgroundColor: colors.error }]}
+                  onPress={() => updateFormData('image_url', '')}
+                >
+                  <Text style={styles.removeImageText}>×</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+            <View style={styles.imageButtonsRow}>
+              <TouchableOpacity
+                style={[styles.imageButton, { backgroundColor: colors.primary }]}
+                onPress={pickImage}
+              >
+                <Text style={styles.imageButtonText}>Choose Photo</Text>
+              </TouchableOpacity>
+              {Platform.OS === 'web' && (
+                <TouchableOpacity
+                  style={[styles.imageButton, { backgroundColor: colors.secondary }]}
+                  onPress={() => {
+                    Alert.prompt('Image URL', 'Enter image URL', (text) => {
+                      if (text) updateFormData('image_url', text);
+                    });
+                  }}
+                >
+                  <Text style={styles.imageButtonText}>Enter URL</Text>
+                </TouchableOpacity>
+              )}
+            </View>
 
             <View style={styles.row}>
               <View style={styles.halfWidth}>
@@ -555,6 +595,47 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: {
     fontSize: 16,
+  },
+  imagePreviewContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
+  imagePreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeImageText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  imageButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  imageButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   sectionTitle: {
     fontSize: 20,
