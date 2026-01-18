@@ -62,49 +62,14 @@ export default function CreateRecipeScreen() {
       allowsEditing: true,
       aspect: [16, 9],
       quality: 0.8,
+      base64: true,
     });
 
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
-      setLoading(true);
-
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Not authenticated');
-
-        const fileExt = asset.uri.split('.').pop();
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-        const filePath = `recipe-images/${fileName}`;
-
-        let fileData;
-        if (Platform.OS === 'web') {
-          const response = await fetch(asset.uri);
-          const blob = await response.blob();
-          fileData = blob;
-        } else {
-          const response = await fetch(asset.uri);
-          const blob = await response.blob();
-          fileData = blob;
-        }
-
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('recipes')
-          .upload(filePath, fileData, {
-            contentType: asset.mimeType || 'image/jpeg',
-            upsert: false,
-          });
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('recipes')
-          .getPublicUrl(filePath);
-
-        updateFormData('image_url', publicUrl);
-      } catch (error: any) {
-        Alert.alert('Error', error.message || 'Failed to upload image');
-      } finally {
-        setLoading(false);
+      if (asset.base64) {
+        const base64Image = `data:image/jpeg;base64,${asset.base64}`;
+        updateFormData('image_url', base64Image);
       }
     }
   };

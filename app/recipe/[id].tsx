@@ -89,16 +89,24 @@ export default function RecipeDetailScreen() {
           onPress: async () => {
             try {
               setLoading(true);
+
               const { error } = await supabase
                 .from('recipes')
                 .delete()
-                .eq('id', id);
+                .eq('id', id)
+                .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
 
-              if (error) throw error;
+              if (error) {
+                console.error('Delete error:', error);
+                throw error;
+              }
 
-              Alert.alert('Success', 'Recipe deleted successfully');
-              router.replace('/(tabs)/?tab=my');
+              router.replace('/(tabs)');
+              setTimeout(() => {
+                Alert.alert('Success', 'Recipe deleted successfully');
+              }, 100);
             } catch (error: any) {
+              console.error('Delete failed:', error);
               Alert.alert('Error', error.message || 'Failed to delete recipe');
               setLoading(false);
             }
