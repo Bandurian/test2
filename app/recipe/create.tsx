@@ -101,20 +101,26 @@ export default function CreateRecipeScreen() {
         Alert.alert('Error', 'Please enter a description');
         return false;
       }
-    } else if (currentStep === 2) {
-      const validIngredients = formData.ingredients.filter((ing) => ing.ingredient_name.trim());
-      if (validIngredients.length === 0) {
-        Alert.alert('Error', 'Please add at least one ingredient');
-        return false;
-      }
-    } else if (currentStep === 3) {
-      const validSteps = formData.steps.filter((step) => step.instruction.trim());
-      if (validSteps.length === 0) {
-        Alert.alert('Error', 'Please add at least one instruction step');
-        return false;
-      }
     }
     return true;
+  };
+
+  const hasIngredientsContent = () => {
+    return formData.ingredients.some((ing) => ing.ingredient_name.trim());
+  };
+
+  const hasStepsContent = () => {
+    return formData.steps.some((step) => step.instruction.trim());
+  };
+
+  const getNextButtonText = () => {
+    if (currentStep === 2) {
+      return hasIngredientsContent() ? 'Continue' : 'Skip';
+    }
+    if (currentStep === 3) {
+      return hasStepsContent() ? 'Save Recipe' : 'Skip & Save';
+    }
+    return 'Next';
   };
 
   const nextStep = () => {
@@ -430,26 +436,17 @@ export default function CreateRecipeScreen() {
             <Text style={[styles.backButtonText, { color: colors.text }]}>Back</Text>
           </TouchableOpacity>
         )}
-        {currentStep < 3 ? (
-          <TouchableOpacity
-            style={[styles.footerButton, styles.nextButton, { backgroundColor: colors.primary }]}
-            onPress={nextStep}
-          >
-            <Text style={styles.nextButtonText}>Next</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[styles.footerButton, styles.nextButton, { backgroundColor: colors.primary }]}
-            onPress={handleSave}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.nextButtonText}>Save Recipe</Text>
-            )}
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={[styles.footerButton, styles.nextButton, { backgroundColor: colors.primary }]}
+          onPress={currentStep < 3 ? nextStep : handleSave}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.nextButtonText}>{getNextButtonText()}</Text>
+          )}
+        </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );

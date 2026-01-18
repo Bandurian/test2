@@ -45,21 +45,15 @@ export default function PlannerScreen() {
   const [selectedRecipeId, setSelectedRecipeId] = useState('');
   const [servings, setServings] = useState('1');
   const [searchQuery, setSearchQuery] = useState('');
-  const [view, setView] = useState<'day' | 'week'>('day');
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [weekMeals, setWeekMeals] = useState<{[key: string]: MealEntry[]}>({});
 
   const supabase = createClient();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
   useEffect(() => {
-    if (view === 'day') {
-      loadData();
-    } else {
-      loadWeekData();
-    }
-  }, [view, selectedDate]);
+    loadData();
+  }, [selectedDate]);
 
   const loadData = async () => {
     setLoading(true);
@@ -89,54 +83,6 @@ export default function PlannerScreen() {
     }
   };
 
-  const loadWeekData = async () => {
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const weekDates = getWeekDates(selectedDate);
-      const weekMealsData: {[key: string]: MealEntry[]} = {};
-
-      for (const date of weekDates) {
-        const dateStr = date.toISOString().split('T')[0];
-        const mealPlanId = await getOrCreateMealPlan(user?.id, dateStr);
-
-        const { data: mealEntries } = await supabase
-          .from('meal_plan_entries')
-          .select('*, recipes(title, calories_per_serving)')
-          .eq('meal_plan_id', mealPlanId)
-          .eq('meal_date', dateStr);
-
-        weekMealsData[dateStr] = mealEntries || [];
-      }
-
-      setWeekMeals(weekMealsData);
-
-      const { data: recipesList } = await supabase
-        .from('recipes')
-        .select('id, title, calories_per_serving')
-        .or(`user_id.eq.${user?.id},is_public.eq.true`)
-        .order('title');
-
-      setRecipes(recipesList || []);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to load week data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getWeekDates = (date: Date) => {
-    const dates = [];
-    const startOfWeek = new Date(date);
-    startOfWeek.setDate(date.getDate() - date.getDay());
-
-    for (let i = 0; i < 7; i++) {
-      const weekDate = new Date(startOfWeek);
-      weekDate.setDate(startOfWeek.getDate() + i);
-      dates.push(weekDate);
-    }
-    return dates;
-  };
 
   const getOrCreateMealPlan = async (userId: string | undefined, date: string) => {
     if (!userId) return null;
@@ -193,7 +139,7 @@ export default function PlannerScreen() {
       setSelectedRecipeId('');
       setServings('1');
       setSearchQuery('');
-      view === 'day' ? loadData() : loadWeekData();
+      loadData();
     } catch (error) {
       Alert.alert('Error', 'Failed to add meal');
     }
@@ -203,22 +149,18 @@ export default function PlannerScreen() {
     try {
       const { error } = await supabase.from('meal_plan_entries').delete().eq('id', id);
       if (error) throw error;
-      view === 'day' ? loadData() : loadWeekData();
+      loadData();
     } catch (error) {
       Alert.alert('Error', 'Failed to delete meal');
     }
   };
 
-  const getMealsByType = (type: string, date?: string) => {
-    if (view === 'week' && date) {
-      return (weekMeals[date] || []).filter((meal) => meal.meal_type === type);
-    }
+  const getMealsByType = (type: string) => {
     return meals.filter((meal) => meal.meal_type === type);
   };
 
-  const getDayCalories = (date: string) => {
-    const dayMeals = weekMeals[date] || [];
-    return dayMeals.reduce((total, meal) => {
+  const getTodayCalories = () => {
+    return meals.reduce((total, meal) => {
       return total + (meal.recipes?.calories_per_serving || 0) * meal.servings;
     }, 0);
   };
@@ -237,114 +179,58 @@ export default function PlannerScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.viewToggle}>
-        <TouchableOpacity
-          style={[styles.viewButton, view === 'day' && { backgroundColor: colors.primary }]}
-          onPress={() => setView('day')}
-        >
-          <Text style={[styles.viewButtonText, view === 'day' && { color: '#fff' }, { color: colors.text }]}>
-            Day
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.viewButton, view === 'week' && { backgroundColor: colors.primary }]}
-          onPress={() => setView('week')}
-        >
-          <Text style={[styles.viewButtonText, view === 'week' && { color: '#fff' }, { color: colors.text }]}>
-            Week
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {view === 'day' ? (
-        <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.header}>
           <Text style={[styles.dateText, { color: colors.text }]}>
             {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </Text>
+          <Text style={[styles.caloriesText, { color: colors.primary }]}>
+            {getTodayCalories()} cal
+          </Text>
+        </View>
 
-          {mealTypes.map((mealType) => {
-            const mealEntries = getMealsByType(mealType.type);
-            return (
-              <View key={mealType.type} style={[styles.mealSection, { backgroundColor: colors.card }]}>
-                <View style={styles.mealHeader}>
-                  <Text style={[styles.mealTitle, { color: colors.text }]}>
-                    {mealType.emoji} {mealType.title}
-                  </Text>
-                  <TouchableOpacity
-                    style={[styles.addMealButton, { backgroundColor: colors.primary }]}
-                    onPress={() => {
-                      setSelectedMealType(mealType.type);
-                      setShowDialog(true);
-                    }}
-                  >
-                    <Text style={styles.addMealButtonText}>+</Text>
-                  </TouchableOpacity>
-                </View>
+        {mealTypes.map((mealType) => {
+          const mealEntries = getMealsByType(mealType.type);
+          return (
+            <View key={mealType.type} style={[styles.mealSection, { backgroundColor: colors.card }]}>
+              <View style={styles.mealHeader}>
+                <Text style={[styles.mealTitle, { color: colors.text }]}>
+                  {mealType.emoji} {mealType.title}
+                </Text>
+                <TouchableOpacity
+                  style={[styles.addMealButton, { backgroundColor: colors.primary }]}
+                  onPress={() => {
+                    setSelectedMealType(mealType.type);
+                    setShowDialog(true);
+                  }}
+                >
+                  <Text style={styles.addMealButtonText}>+</Text>
+                </TouchableOpacity>
+              </View>
 
-                {mealEntries.length === 0 ? (
-                  <Text style={[styles.emptyText, { color: colors.secondary }]}>No meal planned</Text>
-                ) : (
-                  mealEntries.map((meal) => (
-                    <View key={meal.id} style={[styles.mealItem, { borderColor: colors.border }]}>
-                      <View style={styles.mealItemContent}>
-                        <Text style={[styles.mealItemTitle, { color: colors.text }]}>
-                          {meal.recipes?.title || 'Unknown Recipe'}
-                        </Text>
-                        <Text style={[styles.mealItemServings, { color: colors.secondary }]}>
-                          {meal.servings} serving{meal.servings > 1 ? 's' : ''} • {(meal.recipes?.calories_per_serving || 0) * meal.servings} cal
-                        </Text>
-                      </View>
-                      <TouchableOpacity onPress={() => handleDeleteMeal(meal.id)}>
-                        <Text style={[styles.deleteButton, { color: colors.error }]}>✕</Text>
-                      </TouchableOpacity>
+              {mealEntries.length === 0 ? (
+                <Text style={[styles.emptyText, { color: colors.secondary }]}>No meal planned</Text>
+              ) : (
+                mealEntries.map((meal) => (
+                  <View key={meal.id} style={[styles.mealItem, { borderColor: colors.border }]}>
+                    <View style={styles.mealItemContent}>
+                      <Text style={[styles.mealItemTitle, { color: colors.text }]}>
+                        {meal.recipes?.title || 'Unknown Recipe'}
+                      </Text>
+                      <Text style={[styles.mealItemServings, { color: colors.secondary }]}>
+                        {meal.servings} serving{meal.servings > 1 ? 's' : ''} • {(meal.recipes?.calories_per_serving || 0) * meal.servings} cal
+                      </Text>
                     </View>
-                  ))
-                )}
-              </View>
-            );
-          })}
-        </ScrollView>
-      ) : (
-        <ScrollView style={styles.scrollView}>
-          {getWeekDates(selectedDate).map((date) => {
-            const dateStr = date.toISOString().split('T')[0];
-            const dayCalories = getDayCalories(dateStr);
-
-            return (
-              <View key={dateStr} style={[styles.weekDayCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <View style={styles.weekDayHeader}>
-                  <Text style={[styles.weekDayTitle, { color: colors.text }]}>
-                    {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                  </Text>
-                  <Text style={[styles.weekDayCalories, { color: colors.primary }]}>
-                    {dayCalories} cal
-                  </Text>
-                </View>
-
-                <View style={styles.weekMealsGrid}>
-                  {mealTypes.map((mealType) => {
-                    const mealEntries = getMealsByType(mealType.type, dateStr);
-                    return (
-                      <View key={mealType.type} style={styles.weekMealSlot}>
-                        <Text style={[styles.weekMealType, { color: colors.secondary }]}>
-                          {mealType.emoji}
-                        </Text>
-                        {mealEntries.length > 0 ? (
-                          <Text style={[styles.weekMealCount, { color: colors.text }]} numberOfLines={1}>
-                            {mealEntries.length}
-                          </Text>
-                        ) : (
-                          <Text style={[styles.weekMealEmpty, { color: colors.icon }]}>-</Text>
-                        )}
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
-            );
-          })}
-        </ScrollView>
-      )}
+                    <TouchableOpacity onPress={() => handleDeleteMeal(meal.id)}>
+                      <Text style={[styles.deleteButton, { color: colors.error }]}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+            </View>
+          );
+        })}
+      </ScrollView>
 
       <Modal visible={showDialog} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
@@ -419,31 +305,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  viewToggle: {
-    flexDirection: 'row',
-    padding: 16,
-    gap: 8,
-  },
-  viewButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  viewButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
   scrollView: {
     flex: 1,
     padding: 16,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   dateText: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
+  },
+  caloriesText: {
+    fontSize: 18,
+    fontWeight: '600',
   },
   mealSection: {
     marginBottom: 16,
@@ -497,47 +375,6 @@ const styles = StyleSheet.create({
   deleteButton: {
     fontSize: 24,
     padding: 4,
-  },
-  weekDayCard: {
-    marginBottom: 12,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  weekDayHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  weekDayTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  weekDayCalories: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  weekMealsGrid: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  weekMealSlot: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(0,0,0,0.02)',
-  },
-  weekMealType: {
-    fontSize: 20,
-    marginBottom: 4,
-  },
-  weekMealCount: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  weekMealEmpty: {
-    fontSize: 14,
   },
   modalOverlay: {
     flex: 1,

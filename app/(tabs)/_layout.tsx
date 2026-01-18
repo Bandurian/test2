@@ -36,17 +36,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="shopping"
-        options={{
-          title: 'Shopping',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="cart.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="shopping"
+        options={{
+          href: null,
         }}
       />
     </Tabs>
