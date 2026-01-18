@@ -5,9 +5,12 @@ import 'react-native-reanimated';
 import { useEffect, useState } from 'react';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { createClient } from '@/lib/supabase/client';
 
 export default function RootLayout() {
+  useFrameworkReady();
+
   const colorScheme = useColorScheme();
   const [isSignedIn, setIsSignedIn] = useState<boolean | null>(null);
   const supabase = createClient();
@@ -18,7 +21,9 @@ export default function RootLayout() {
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsSignedIn(!!session);
+      (async () => {
+        setIsSignedIn(!!session);
+      })();
     });
 
     return () => subscription?.unsubscribe();
